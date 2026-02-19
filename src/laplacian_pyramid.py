@@ -1,5 +1,6 @@
 import numpy as np
 import tqdm
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from scipy.signal import butter
 
 from processing import pyrDown, pyrUp, rgb2yiq
@@ -20,19 +21,33 @@ def generateLaplacianPyramid(image, kernel, level):
     return laplacian_pyramid
 
 
-def getLaplacianPyramids(images, kernel, level):
-    laplacian_pyramids = []
+def _generate_laplacian_pyramid_worker(args):
+    """Worker function for parallel Laplacian pyramid generation."""
+    index, image, kernel, level = args
+    result = generateLaplacianPyramid(
+                image=rgb2yiq(image),
+                kernel=kernel,
+                level=level
+             )
+    return index, result
 
-    for image in tqdm.tqdm(images,
-                           ascii=True,
-                           desc="Laplacian Pyramids Generation"):
 
-        laplacian_pyramid = generateLaplacianPyramid(
-                                    image=rgb2yiq(image),
-                                    kernel=kernel,
-                                    level=level
-                        )
-        laplacian_pyramids.append(laplacian_pyramid)
+def getLaplacianPyramids(images, kernel, level, max_workers=None):
+    num_frames = len(images)
+    laplacian_pyramids = [None] * num_frames
+
+    tasks = [(i, images[i], kernel, level) for i in range(num_frames)]
+
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(_generate_laplacian_pyramid_worker, t): t[0]
+                   for t in tasks}
+
+        with tqdm.tqdm(total=num_frames, ascii=True,
+                       desc="Laplacian Pyramids Generation") as pbar:
+            for future in as_completed(futures):
+                idx, result = future.result()
+                laplacian_pyramids[idx] = result
+                pbar.update(1)
 
     return np.asarray(laplacian_pyramids, dtype='object')
 

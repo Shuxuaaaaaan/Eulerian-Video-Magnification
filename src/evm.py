@@ -14,12 +14,14 @@ def gaussian_evm(images,
                  level,
                  alpha,
                  freq_range,
-                 attenuation):
+                 attenuation,
+                 max_workers=None):
 
     gaussian_pyramids = getGaussianPyramids(
                             images=images,
                             kernel=kernel,
-                            level=level
+                            level=level,
+                            max_workers=max_workers
                     )
 
     print("Gaussian Pyramids Filtering...")
@@ -34,7 +36,8 @@ def gaussian_evm(images,
 
     output_video = getGaussianOutputVideo(
                         original_images=images,
-                        filtered_images=filtered_pyramids
+                        filtered_images=filtered_pyramids,
+                        max_workers=max_workers
                 )
 
     return output_video
@@ -47,12 +50,14 @@ def laplacian_evm(images,
                   alpha,
                   lambda_cutoff,
                   freq_range,
-                  attenuation):
+                  attenuation,
+                  max_workers=None):
 
     laplacian_pyramids = getLaplacianPyramids(
                                 images=images,
                                 kernel=kernel,
-                                level=level
+                                level=level,
+                                max_workers=max_workers
                     )
 
     filtered_pyramids = filterLaplacianPyramids(
@@ -68,7 +73,8 @@ def laplacian_evm(images,
     output_video = getLaplacianOutputVideo(
                             original_images=images,
                             filtered_images=filtered_pyramids,
-                            kernel=kernel
+                            kernel=kernel,
+                            max_workers=max_workers
                 )
 
     return output_video
@@ -159,6 +165,15 @@ if __name__ == "__main__":
         default=1
     )
 
+    parser.add_argument(
+        "--workers",
+        "-w",
+        type=int,
+        help="Number of parallel worker processes (default: number of CPU cores)",
+        required=False,
+        default=None
+    )
+
     args = parser.parse_args()
     kwargs = {}
     kwargs['kernel'] = gaussian_kernel
@@ -166,6 +181,7 @@ if __name__ == "__main__":
     kwargs['alpha'] = args.alpha
     kwargs['freq_range'] = [args.low_omega, args.high_omega]
     kwargs['attenuation'] = args.attenuation
+    kwargs['max_workers'] = args.workers
     mode = args.mode
     video_path = args.video_path
 
@@ -182,3 +198,4 @@ if __name__ == "__main__":
         output_video = laplacian_evm(**kwargs)
 
     saveVideo(video=output_video, saving_path=args.saving_path, fps=fps)
+

@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import tqdm
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from constants import rgb_from_yiq, yiq_from_rgb
 
@@ -94,33 +95,59 @@ def reconstructLaplacianImage(image, pyramid, kernel):
     return reconstructed_image.astype(np.uint8)
 
 
-def getGaussianOutputVideo(original_images, filtered_images):
+def _reconstruct_gaussian_worker(args):
+    """Worker function for parallel Gaussian video reconstruction."""
+    index, image, pyramid = args
+    result = reconstructGaussianImage(image=image, pyramid=pyramid)
+    return index, result
+
+
+def _reconstruct_laplacian_worker(args):
+    """Worker function for parallel Laplacian video reconstruction."""
+    index, image, pyramid, kernel = args
+    result = reconstructLaplacianImage(image=image, pyramid=pyramid, kernel=kernel)
+    return index, result
+
+
+def getGaussianOutputVideo(original_images, filtered_images, max_workers=None):
     video = np.zeros_like(original_images)
+    num_frames = filtered_images.shape[0]
 
-    for i in tqdm.tqdm(range(filtered_images.shape[0]),
-                       ascii=True,
-                       desc="Video Reconstruction"):
+    tasks = [(i, original_images[i], filtered_images[i])
+             for i in range(num_frames)]
 
-        video[i] = reconstructGaussianImage(
-                    image=original_images[i],
-                    pyramid=filtered_images[i]
-                )
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(_reconstruct_gaussian_worker, t): t[0]
+                   for t in tasks}
+
+        with tqdm.tqdm(total=num_frames, ascii=True,
+                       desc="Video Reconstruction") as pbar:
+            for future in as_completed(futures):
+                idx, result = future.result()
+                video[idx] = result
+                pbar.update(1)
 
     return video
 
 
-def getLaplacianOutputVideo(original_images, filtered_images, kernel):
+def getLaplacianOutputVideo(original_images, filtered_images, kernel,
+                            max_workers=None):
     video = np.zeros_like(original_images)
+    num_frames = original_images.shape[0]
 
-    for i in tqdm.tqdm(range(original_images.shape[0]),
-                       ascii=True,
-                       desc="Video Reconstruction"):
+    tasks = [(i, original_images[i], filtered_images[i], kernel)
+             for i in range(num_frames)]
 
-        video[i] = reconstructLaplacianImage(
-                    image=original_images[i],
-                    pyramid=filtered_images[i],
-                    kernel=kernel
-                )
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(_reconstruct_laplacian_worker, t): t[0]
+                   for t in tasks}
+
+        with tqdm.tqdm(total=num_frames, ascii=True,
+                       desc="Video Reconstruction") as pbar:
+            for future in as_completed(futures):
+                idx, result = future.result()
+                video[idx] = result
+                pbar.update(1)
 
     return video
 
