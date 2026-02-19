@@ -1,11 +1,25 @@
 import argparse
 import os
 
+import cupy as cp
+
 from constants import gaussian_kernel
 from gaussian_pyramid import filterGaussianPyramids, getGaussianPyramids
 from laplacian_pyramid import filterLaplacianPyramids, getLaplacianPyramids
 from processing import (getGaussianOutputVideo, getLaplacianOutputVideo,
                         loadVideo, saveVideo)
+
+
+def print_cuda_info():
+    """Print CUDA device information."""
+    device = cp.cuda.Device(0)
+    props = cp.cuda.runtime.getDeviceProperties(device.id)
+    name = props['name'].decode('utf-8') if isinstance(props['name'], bytes) else props['name']
+    total_mem = props['totalGlobalMem'] / (1024 ** 3)
+    print(f"[CUDA] Device: {name}")
+    print(f"[CUDA] Total Memory: {total_mem:.1f} GB")
+    print(f"[CUDA] Compute Capability: {props['major']}.{props['minor']}")
+    print()
 
 
 def gaussian_evm(images,
@@ -22,7 +36,7 @@ def gaussian_evm(images,
                             level=level
                     )
 
-    print("Gaussian Pyramids Filtering...")
+    print("Gaussian Pyramids Filtering (GPU)...")
     filtered_pyramids = filterGaussianPyramids(
                             pyramids=gaussian_pyramids,
                             fps=fps,
@@ -76,7 +90,7 @@ def laplacian_evm(images,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Eulerian Video Magnification for colors and motions magnification"
+        description="Eulerian Video Magnification (CUDA Accelerated)"
     )
 
     parser.add_argument(
@@ -160,6 +174,10 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+
+    # Print CUDA device info
+    print_cuda_info()
+
     kwargs = {}
     kwargs['kernel'] = gaussian_kernel
     kwargs['level'] = args.level
@@ -171,7 +189,12 @@ if __name__ == "__main__":
 
     assert os.path.exists(video_path), f"Video {video_path} not found :("
 
+    print("Loading video...")
     images, fps = loadVideo(video_path=video_path)
+    print(f"Video loaded: {images.shape[0]} frames, {images.shape[1]}x{images.shape[2]}, FPS={fps}")
+    print(f"GPU memory allocated: {cp.get_default_memory_pool().used_bytes() / 1024**2:.1f} MB")
+    print()
+
     kwargs['images'] = images
     kwargs['fps'] = fps
 
@@ -182,3 +205,7 @@ if __name__ == "__main__":
         output_video = laplacian_evm(**kwargs)
 
     saveVideo(video=output_video, saving_path=args.saving_path, fps=fps)
+
+    # Free GPU memory
+    cp.get_default_memory_pool().free_all_blocks()
+    print("Done! GPU memory released.")

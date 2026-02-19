@@ -1,7 +1,8 @@
 import numpy as np
+import cupy as cp
 
 
-gaussian_kernel = (
+gaussian_kernel_np = (
     np.array(
         [
             [1,  4,  6,  4, 1],
@@ -14,8 +15,10 @@ gaussian_kernel = (
     / 256
 )
 
+gaussian_kernel = cp.asarray(gaussian_kernel_np, dtype=cp.float64)
 
-yiq_from_rgb = (
+
+yiq_from_rgb_np = (
     np.array(
             [
                 [0.29900000,  0.58700000,  0.11400000],
@@ -25,5 +28,7 @@ yiq_from_rgb = (
         )
     ).astype(np.float32)
 
+rgb_from_yiq_np = np.linalg.inv(yiq_from_rgb_np)
 
-rgb_from_yiq = np.linalg.inv(yiq_from_rgb)
+yiq_from_rgb = cp.asarray(yiq_from_rgb_np)
+rgb_from_yiq = cp.asarray(rgb_from_yiq_np)

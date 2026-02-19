@@ -1,4 +1,4 @@
-import numpy as np
+import cupy as cp
 import tqdm
 
 from processing import idealTemporalBandpassFilter, pyrDown, pyrUp, rgb2yiq
@@ -24,11 +24,11 @@ def generateGaussianPyramid(image, kernel, level):
 
 
 def getGaussianPyramids(images, kernel, level):
-    gaussian_pyramids = np.zeros_like(images, dtype=np.float32)
+    gaussian_pyramids = cp.zeros_like(images, dtype=cp.float32)
 
     for i in tqdm.tqdm(range(images.shape[0]),
                        ascii=True,
-                       desc='Gaussian Pyramids Generation'):
+                       desc='Gaussian Pyramids Generation (GPU)'):
 
         gaussian_pyramids[i] = generateGaussianPyramid(
                                     image=rgb2yiq(images[i]),
@@ -49,7 +49,7 @@ def filterGaussianPyramids(pyramids,
                             images=pyramids,
                             fps=fps,
                             freq_range=freq_range
-                        ).astype(np.float32)
+                        ).astype(cp.float32)
 
     filtered_pyramids *= alpha
     filtered_pyramids[:, :, :, 1:] *= attenuation

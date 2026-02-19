@@ -1,6 +1,12 @@
 [project]
 name = "eulerian-video-magnification-main"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.2.0"
+description = "Eulerian Video Magnification with CUDA acceleration"
 requires-python = ">=3.9"
-dependencies = []
+dependencies = [
+    "numpy",
+    "opencv-python",
+    "scipy",
+    "tqdm",
+    "cupy-cuda12x",
+]
