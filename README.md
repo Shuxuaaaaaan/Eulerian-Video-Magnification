@@ -75,43 +75,53 @@ data/
 
 ### 4. Algorithm Parameters / 算法参数配置
 
-The daemon's processing parameters are configured in **`src/watcher.py`** (line 36–41):  
-后台守护进程的**算法参数**在 **`src/watcher.py`** 文件的第 36–41 行配置：
+All parameters are configured via **environment variables** in `docker-compose.yml`, no need to edit Python code:  
+所有参数均通过 `docker-compose.yml` 中的**环境变量**配置，无需修改代码：
 
-```python
-cmd = [
-    "/app/.venv/bin/python", EVM_SCRIPT,
-    "-v", input_path,
-    "-s", output_path,
-    "--accel", "cpu",     # Acceleration mode / 加速模式: cpu or cuda
-    "-t", "4"             # CPU threads / CPU 线程数
-]
+| Env Variable / 环境变量 | Description / 说明 | Default / 默认值 |
+|---|---|---|
+| `EVM_THREADS` | CPU threads / CPU 线程数 | `1` |
+| `EVM_ACCEL` | `cpu` or `cuda` / 加速模式 | `cpu` |
+| `EVM_MODE` | `gaussian` or `laplacian` / 金字塔模式 | `gaussian` |
+| `EVM_LEVEL` | Pyramid levels / 金字塔层数 | `4` |
+| `EVM_ALPHA` | Amplification factor / 放大系数 | `100` |
+| `EVM_LAMBDA_CUTOFF` | λ cutoff (Laplacian only) / λ 截止值 | `1000` |
+| `EVM_LOW_OMEGA` | Min frequency / 最低频率 | `0.833` |
+| `EVM_HIGH_OMEGA` | Max frequency / 最高频率 | `1` |
+| `EVM_ATTENUATION` | I/Q attenuation / I/Q 衰减系数 | `1` |
+
+Example `docker-compose.yml` for motion magnification / 运动放大配置示例：
+
+```yaml
+environment:
+  - EVM_THREADS=4
+  - EVM_MODE=laplacian
+  - EVM_LEVEL=4
+  - EVM_ALPHA=15
+  - EVM_LAMBDA_CUTOFF=16
+  - EVM_LOW_OMEGA=0.4
+  - EVM_HIGH_OMEGA=3
+  - EVM_ATTENUATION=0.1
 ```
 
-You can add any algorithm arguments from the table below to customize magnification behavior.  
-可以在此处添加下方参数表中的任何算法参数来自定义放大效果，例如：
+### 5. Pre-built Images / 预编译镜像
 
-```python
-cmd = [
-    "/app/.venv/bin/python", EVM_SCRIPT,
-    "-v", input_path,
-    "-s", output_path,
-    "-m", "laplacian",    # Pyramid mode / 金字塔模式
-    "-l", "4",            # Pyramid levels / 金字塔层数
-    "-a", "15",           # Amplification factor / 放大系数
-    "-lc", "16",          # Lambda cutoff / λ 截止值
-    "-at", "0.1",         # Attenuation / 衰减系数
-    "-lo", "0.4",         # Low frequency / 最低频率
-    "-ho", "3",           # High frequency / 最高频率
-    "--accel", "cpu",
-    "-t", "4"
-]
+Pre-built Docker images for both architectures are available in the `docker-images/` directory:  
+两个架构的预编译镜像位于 `docker-images/` 目录下：
+
+```bash
+# Load the image matching your architecture / 加载对应架构的镜像
+docker load -i docker-images/evm-arm64.tar    # Raspberry Pi / ARM64
+docker load -i docker-images/evm-amd64.tar    # PC / AMD64
+
+# Start the daemon / 启动守护进程
+docker compose up -d
 ```
 
-> **Note / 提示**: After modifying `watcher.py`, rebuild the image with `docker compose build` and restart with `docker compose up -d`.  
-> 修改 `watcher.py` 后，需执行 `docker compose build` 重新构建镜像，再 `docker compose up -d` 重启。
+> **Tip / 提示**: This is especially useful for devices without internet access (e.g., Raspberry Pi behind a firewall).  
+> 对于无法联网的设备（如内网树莓派）特别实用。
 
-### 5. Container Management / 容器管理
+### 6. Container Management / 容器管理
 
 ```bash
 # Start daemon in background / 后台启动守护进程

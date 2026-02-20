@@ -121,3 +121,6 @@ cython_debug/
 *.swp
 *.swo
 
+# Docker pre-built images
+docker-images/
+*.tar

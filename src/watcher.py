@@ -9,6 +9,17 @@ WATCH_DIR = "/app/data/resources"
 OUTPUT_DIR = "/app/data/results"
 EVM_SCRIPT = "/app/src/evm.py"
 
+# Configurable via environment variables (set in docker-compose.yml)
+EVM_THREADS = os.environ.get("EVM_THREADS", "1")
+EVM_ACCEL = os.environ.get("EVM_ACCEL", "cpu")
+EVM_MODE = os.environ.get("EVM_MODE")             # gaussian / laplacian
+EVM_LEVEL = os.environ.get("EVM_LEVEL")            # Pyramid levels
+EVM_ALPHA = os.environ.get("EVM_ALPHA")            # Amplification factor
+EVM_LAMBDA_CUTOFF = os.environ.get("EVM_LAMBDA_CUTOFF")  # Lambda cutoff
+EVM_LOW_OMEGA = os.environ.get("EVM_LOW_OMEGA")    # Min frequency
+EVM_HIGH_OMEGA = os.environ.get("EVM_HIGH_OMEGA")  # Max frequency
+EVM_ATTENUATION = os.environ.get("EVM_ATTENUATION") # I/Q channel attenuation
+
 class VideoHandler(FileSystemEventHandler):
     def on_created(self, event):
         # Ignore directories and non-mp4 files
@@ -31,22 +42,35 @@ class VideoHandler(FileSystemEventHandler):
         start_time = time.time()
         
         try:
-            # Call the main script externally to isolate memory and avoid threading issues
-            # Using CPU mode with 4 threads by default (adjustable or via env vars)
             cmd = [
                 "/app/.venv/bin/python", EVM_SCRIPT,
                 "-v", input_path,
                 "-s", output_path,
-                "--accel", "cpu",
-                "-t", "4"
+                "--accel", EVM_ACCEL,
+                "-t", EVM_THREADS
             ]
+            # Append optional algorithm parameters if configured
+            if EVM_MODE:            cmd += ["-m", EVM_MODE]
+            if EVM_LEVEL:           cmd += ["-l", EVM_LEVEL]
+            if EVM_ALPHA:           cmd += ["-a", EVM_ALPHA]
+            if EVM_LAMBDA_CUTOFF:   cmd += ["-lc", EVM_LAMBDA_CUTOFF]
+            if EVM_LOW_OMEGA:       cmd += ["-lo", EVM_LOW_OMEGA]
+            if EVM_HIGH_OMEGA:      cmd += ["-ho", EVM_HIGH_OMEGA]
+            if EVM_ATTENUATION:     cmd += ["-at", EVM_ATTENUATION]
             
             result = subprocess.run(cmd, check=True, text=True, capture_output=True)
             print(f"[Watcher] Successfully processed {filename} in {time.time() - start_time:.2f}s", flush=True)
             
         except subprocess.CalledProcessError as e:
-            print(f"[Watcher] Error processing {filename}:", flush=True)
-            print(e.stderr, flush=True)
+            print(f"[Watcher] Error processing {filename} (exit code {e.returncode}):", flush=True)
+            if e.stdout:
+                print(f"[Watcher] STDOUT:\n{e.stdout}", flush=True)
+            if e.stderr:
+                # Filter out tqdm progress bars to show only the real error
+                error_lines = [line for line in e.stderr.splitlines() 
+                               if not line.strip().startswith(('Gaussian', 'Laplacian', '%|', ''))]
+                real_error = '\n'.join(error_lines) if error_lines else e.stderr[-500:]
+                print(f"[Watcher] STDERR:\n{real_error}", flush=True)
         except Exception as e:
              print(f"[Watcher] Unexpected error processing {filename}: {e}", flush=True)
 
@@ -58,6 +82,7 @@ if __name__ == "__main__":
 
         print(f"[Watcher] Starting Eulerian Video Magnification Daemon", flush=True)
         print(f"[Watcher] Monitoring directory: {WATCH_DIR}", flush=True)
+        print(f"[Watcher] Config: accel={EVM_ACCEL}, threads={EVM_THREADS}", flush=True)
         
         event_handler = VideoHandler()
         
