@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  # 统一的 CPU 跨平台核心服务
+  evm-cpu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # buildx 配置，明确告诉 Docker 此脚本支持多架构
+      platforms:
+        - "linux/amd64"
+        - "linux/arm64"
+    image: evm-app:latest
+    container_name: evm-cpu-runner
+    # 将宿主机的 data 目录映射到容器内的 /app/data
+    volumes:
+      - ./data:/app/data
+
+    # 自动尝试重启，使得容器变为常驻后台服务
+    restart: unless-stopped
