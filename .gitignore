@@ -121,6 +121,3 @@ cython_debug/
 *.swp
 *.swo
 
-# Project specific
-results/
-data/

@@ -1,6 +1,8 @@
 import argparse
 import os
+import time
 
+import accelerator
 from constants import gaussian_kernel
 from gaussian_pyramid import filterGaussianPyramids, getGaussianPyramids
 from laplacian_pyramid import filterLaplacianPyramids, getLaplacianPyramids
@@ -136,7 +138,7 @@ if __name__ == "__main__":
         "--saving_path",
         "-s",
         type=str,
-        help="Saving path of the magnified video",
+        help="Saving path of the magnified video (output will be .mp4)",
         required=True
     )
 
@@ -159,7 +161,36 @@ if __name__ == "__main__":
         default=1
     )
 
+    # ---- Acceleration parameters ----
+
+    parser.add_argument(
+        "--accel",
+        "-acc",
+        type=str,
+        help="Acceleration backend: 'cpu' (default) or 'cuda'",
+        choices=['cpu', 'cuda'],
+        required=False,
+        default='cpu'
+    )
+
+    parser.add_argument(
+        "--threads",
+        "-t",
+        type=int,
+        help="Number of worker processes for CPU mode (default: 1 = serial). "
+             "Only effective when --accel cpu.",
+        required=False,
+        default=1
+    )
+
     args = parser.parse_args()
+
+    # ---- Initialize acceleration backend ----
+    accelerator.init(accel=args.accel, threads=args.threads)
+
+    # ---- Display hardware info ----
+    accelerator.print_hardware_info()
+
     kwargs = {}
     kwargs['kernel'] = gaussian_kernel
     kwargs['level'] = args.level
@@ -172,13 +203,33 @@ if __name__ == "__main__":
     assert os.path.exists(video_path), f"Video {video_path} not found :("
 
     images, fps = loadVideo(video_path=video_path)
+
+    # ---- Transfer to GPU if CUDA mode ----
+    if args.accel == 'cuda':
+        images = accelerator.to_device(images)
+        kwargs['kernel'] = accelerator.to_device(gaussian_kernel)
+
+    # ---- Display video info ----
+    accelerator.print_video_info(video_path, images, fps)
+
     kwargs['images'] = images
     kwargs['fps'] = fps
+
+    # ---- Run EVM with timing ----
+    print(f"Starting {mode.capitalize()} EVM processing...\n")
+    start_time = time.time()
 
     if mode == 'gaussian':
         output_video = gaussian_evm(**kwargs)
     else:
         kwargs['lambda_cutoff'] = args.lambda_cutoff
         output_video = laplacian_evm(**kwargs)
+
+    elapsed = time.time() - start_time
+
+    print(f"\n{'=' * 60}")
+    print(f"  Processing Complete!")
+    print(f"  Total Time   : {elapsed:.2f} s ({elapsed / 60:.2f} min)")
+    print(f"{'=' * 60}\n")
 
     saveVideo(video=output_video, saving_path=args.saving_path, fps=fps)

@@ -1,0 +1,134 @@
+============================================================
+  Test Results Summary
+  测试结果概述
+============================================================
+  Input Video: baby.mp4 (960x544, 301 frames)
+
+  1. CUDA (RTX 4060 Laptop GPU)
+     - Total Processing Time: 1.56 s
+     - Speedup vs CPU (1 thread): ~26.9x
+     - Speedup vs CPU (8 threads): ~22.0x
+
+  2. CPU (1 thread)
+     - Total Processing Time: 42.04 s
+
+  3. CPU (8 threads)
+     - Total Processing Time: 34.39 s
+     - Speedup vs CPU (1 thread): ~1.2x
+============================================================
+
+============================================================
+  Detailed runtime log
+  详细运行日志
+============================================================
+
+(Eulerian-Video-Magnification-main) PS D:\Users\Documents\Python\Eulerian-Video-Magnification-main> python src/evm.py -v data/resources/baby.mp4 -s data/results/baby_test_cuda.mp4 -l 4 -a 15 -lc 16 -lo 0.4 -ho 3 -at 0.1 -m laplacian -acc cuda
+============================================================
+  Hardware Information
+============================================================
+  OS           : Windows 10
+  Python       : 3.9.25
+  Accel Mode   : CUDA
+  GPU          : NVIDIA GeForce RTX 4060 Laptop GPU
+  GPU Memory   : 8.0 GB
+  CUDA Version : 12090
+============================================================
+
+============================================================
+  Input Video Information
+============================================================
+  File         : baby.mp4
+  Resolution   : 960 x 544
+  FPS          : 30.00
+  Frames       : 301
+  Duration     : 10.03 s
+============================================================
+
+Starting Laplacian EVM processing...
+
+Laplacian Pyramids Generation (CUDA): 100%|#####################################| 301/301 [00:00<00:00, 471.97it/s]
+Laplacian Pyramids Filtering (CUDA): 100%|######################################| 300/300 [00:00<00:00, 658.94it/s]
+Video Reconstruction (CUDA): 100%|##############################################| 301/301 [00:00<00:00, 653.49it/s]
+
+============================================================
+  Processing Complete!
+  Total Time   : 1.56 s (0.03 min)
+============================================================
+
+Saving Video: 100%|#############################################################| 301/301 [00:01<00:00, 236.56it/s]
+
+Video saved to: data/results/baby_test_cuda.mp4
+(Eulerian-Video-Magnification-main) PS D:\Users\Documents\Python\Eulerian-Video-Magnification-main> python src/evm.py -v data/resources/baby.mp4 -s data/results/baby_test_cpu1t.mp4 -l 4 -a 15 -lc 16 -lo 0.4 -ho 3 -at 0.1 -m laplacian -acc cpu -t 1
+============================================================
+  Hardware Information
+============================================================
+  OS           : Windows 10
+  Python       : 3.9.25
+  Accel Mode   : CPU
+  CPU          : AMD64 Family 25 Model 117 Stepping 2, AuthenticAMD
+  CPU Cores    : 8 physical / 16 logical
+  RAM          : 31.3 GB
+  Threads Used : 1
+============================================================
+
+============================================================
+  Input Video Information
+============================================================
+  File         : baby.mp4
+  Resolution   : 960 x 544
+  FPS          : 30.00
+  Frames       : 301
+  Duration     : 10.03 s
+============================================================
+
+Starting Laplacian EVM processing...
+
+Laplacian Pyramids Generation: 100%|#############################################| 301/301 [00:05<00:00, 54.74it/s]
+Laplacian Pyramids Filtering: 100%|##############################################| 300/300 [00:19<00:00, 15.65it/s]
+Video Reconstruction: 100%|######################################################| 301/301 [00:16<00:00, 17.80it/s]
+
+============================================================
+  Processing Complete!
+  Total Time   : 42.04 s (0.70 min)
+============================================================
+
+Saving Video: 100%|#############################################################| 301/301 [00:01<00:00, 151.74it/s]
+
+Video saved to: data/results/baby_test_cpu1t.mp4
+(Eulerian-Video-Magnification-main) PS D:\Users\Documents\Python\Eulerian-Video-Magnification-main> python src/evm.py -v data/resources/baby.mp4 -s data/results/baby_test_cpu8t.mp4 -l 4 -a 15 -lc 16 -lo 0.4 -ho 3 -at 0.1 -m laplacian -acc cpu -t 8
+============================================================
+  Hardware Information
+============================================================
+  OS           : Windows 10
+  Python       : 3.9.25
+  Accel Mode   : CPU
+  CPU          : AMD64 Family 25 Model 117 Stepping 2, AuthenticAMD
+  CPU Cores    : 8 physical / 16 logical
+  RAM          : 31.3 GB
+  Threads Used : 8
+============================================================
+
+============================================================
+  Input Video Information
+============================================================
+  File         : baby.mp4
+  Resolution   : 960 x 544
+  FPS          : 30.00
+  Frames       : 301
+  Duration     : 10.03 s
+============================================================
+
+Starting Laplacian EVM processing...
+
+Laplacian Pyramids Generation (CPU parallel): 100%|##############################| 301/301 [00:03<00:00, 76.51it/s]
+Laplacian Pyramids Filtering: 100%|##############################################| 300/300 [00:17<00:00, 17.54it/s]
+Video Reconstruction (CPU parallel): 100%|#######################################| 301/301 [00:12<00:00, 24.79it/s]
+
+============================================================
+  Processing Complete!
+  Total Time   : 34.39 s (0.57 min)
+============================================================
+
+Saving Video: 100%|#############################################################| 301/301 [00:02<00:00, 136.93it/s]
+
+Video saved to: data/results/baby_test_cpu8t.mp4
